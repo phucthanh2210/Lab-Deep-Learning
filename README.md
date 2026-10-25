@@ -7,7 +7,7 @@ Bài thực hành đã có mã nguồn, ba notebook có output và báo cáo d�
 - **Exercise 1:** pretrained sentiment analysis, tokenization và đối chiếu pipeline/manual forward.
 - **Exercise 2:** fine-tune DistilBERT trên toàn bộ Rotten Tomatoes: **8.530 train / 1.066 validation / 1.066 test**.
 - **Test:** Accuracy **83,96%**, Binary F1 **84,06%**, đúng 895/1.066 mẫu.
-- **Kiểm chứng:** 24 artifacts khớp SHA256; metrics được tính lại từ toàn bộ predictions; 13 tests CPU đạt; ba notebook thực thi chế độ view offline.
+- **Kiểm chứng:** 24 artifacts khớp SHA256; metrics được tính lại từ toàn bộ predictions; 14 tests CPU đạt; ba notebook thực thi chế độ view offline.
 
 ### Mở bài
 

@@ -99,3 +99,7 @@ Log Kaggle do người dùng cung cấp cho run `20261025T174902Z_finetuning_1e3
 Kiểm tra cũ so sánh live model của Trainer/Accelerate trên CUDA với model tải lại trên CPU, có thể khác ngữ cảnh autocast và sai số số học. Bản sửa kiểm tra tensor trọng số khớp chính xác trước, rồi so sánh suy luận trên hai instance sạch trong cùng CPU FP32. Không nới tolerance để che lỗi trọng số.
 
 Thêm script khôi phục riêng, chỉ dùng khi đủ artifacts/epochs và lỗi reload đã biết. Giữ log lỗi, kiểm tra manifest trước khi khôi phục, kiểm tra best checkpoint, tạo report và cập nhật registry/manifest mà không train lại. Kiểm thử CPU: **11 passed**, gồm forward wrapper, phát hiện trọng số sai và khôi phục run fixture. Việc khôi phục run Kaggle thật vẫn cần thực thi tại máy của người dùng.
+
+## Rà soát nghiệm thu cuối
+
+Chạy lại ba notebook view offline, xác nhận registry/artifacts không thay đổi; audit 24 file, tính lại metrics từ 1.066 dự đoán; kiểm tra năm PNG, CLI help và lỗi thiếu checkpoint. Phát hiện eval/infer dùng config hiện tại khi đánh giá checkpoint cũ: đã ưu tiên config snapshot của run, bỏ bước tải base tokenizer không cần thiết trong eval. Test CLI thực thi với model fixture và dataset mock xác nhận không tải backbone, dùng đúng dataset và max_length gốc. Bộ kiểm thử hiện tại: 14 passed trên CPU. Chi tiết kiểm tra: validation/final_review.json.

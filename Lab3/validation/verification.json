@@ -3,12 +3,13 @@
     "python": "3.12.14",
     "torch": "2.6.0+cpu",
     "pytest": {
-      "tests": 13,
+      "tests": 14,
       "failures": 0,
       "errors": 0,
       "skipped": 0
     },
     "test_cases": [
+      "test_eval_and_infer_use_checkpoint_config_without_backbone_download",
       "test_official_split_contract",
       "test_tokenization_and_dynamic_padding",
       "test_real_kaggle_evidence_recomputes_metrics_without_models",

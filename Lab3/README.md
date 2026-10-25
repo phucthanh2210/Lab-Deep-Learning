@@ -77,7 +77,7 @@ cd ..
 .venv/bin/python Lab3/scripts/audit_outputs.py
 ```
 
-- **13 tests đạt trên CPU**: dataset contract, dynamic padding, pipeline/manual, checkpoint, sanity overfit, Trainer, run tracking, năm plots, recovery, metrics/artifact audit và phát hiện dữ liệu bị sửa.
+- **14 tests đạt trên CPU**: dataset contract, dynamic padding, pipeline/manual, checkpoint, sanity overfit, Trainer, run tracking, năm plots, recovery, metrics/artifact audit và phát hiện dữ liệu bị sửa.
 - Audit kiểm tra 24 file SHA256, tính lại toàn bộ bảy metrics từ 1.066 predictions và xác nhận confusion matrix.
 - 29 file checkpoint không có trong Git được liệt kê rõ là thiếu có chủ đích, không coi là đã kiểm tra tại máy rà soát.
 - Ba notebook chạy hết ở view, Hugging Face offline, không có cell lỗi. Xem `validation/notebook_execution.json`.
@@ -133,6 +133,8 @@ Rồi chạy:
 .venv/bin/python Lab3/scripts/eval.py --model-path Lab3/outputs/runs/20261025T181550Z_finetuning_e02bced7/best_model
 .venv/bin/python Lab3/scripts/infer.py --model-path Lab3/outputs/runs/20261025T181550Z_finetuning_e02bced7/best_model --text "A wonderful movie."
 ```
+
+Eval/infer với `best_model/` ưu tiên config snapshot của run (gồm max length và dataset), nên thay đổi config hiện tại không làm lệch đánh giá run cũ. Eval chỉ tải tokenizer trong checkpoint, không tải lại backbone/tokenizer không liên quan.
 
 Không truyền `--model-path` thì infer dùng sentiment pretrained SST-2 của Exercise 1, **không phải** mô hình Rotten Tomatoes vừa train. Eval không âm thầm fallback khi thiếu checkpoint.
 

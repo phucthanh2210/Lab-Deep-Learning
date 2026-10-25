@@ -1,0 +1,31 @@
+{
+  "requirements": {
+    "exercise1": "covered: pretrained sentiment, tokens/IDs/mask, pipeline/manual predictions",
+    "exercise2": "covered: full official dataset, pretrained backbone/tokenizer, preprocessing, TrainingArguments/Trainer, three epochs and test evaluation"
+  },
+  "checks": {
+    "pytest_passed": 14,
+    "pytest_failed": 0,
+    "pip_check": "passed",
+    "notebooks_view_offline": 3,
+    "notebook_errors": 0,
+    "view_preserves_artifacts_and_registry": true,
+    "sha256_verified_files": 24,
+    "metrics_recomputed_predictions": 1066,
+    "png_files_decoded": 5,
+    "cli_help_from_unrelated_directory": 3,
+    "missing_checkpoint_rejected": [
+      "eval.py",
+      "infer.py"
+    ],
+    "eval_infer_use_original_config": "passed local model CLI regression"
+  },
+  "fix": "Eval/infer use run config snapshot when available; eval avoids downloading an unrelated base model tokenizer",
+  "limitations": {
+    "checkpoint_not_in_git": true,
+    "checkpoint_verification_source": "Kaggle reload_check.json, SHA256 verified; local rerun not performed",
+    "weights_recovery": "Owner-held Kaggle ZIP, see README",
+    "gpu_retraining_performed_in_this_review": false,
+    "dataset_commit_sha_not_recorded": "Original config uses main; provenance provides fingerprints and backbone commit"
+  }
+}
