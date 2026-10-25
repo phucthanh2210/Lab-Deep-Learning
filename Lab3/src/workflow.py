@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from transformers import set_seed
 from .datasets.loader import load_data, tokenize_data
-from .models.classifier import load_model, manual_predict, compare_inference
+from .models.classifier import load_model, manual_predict, compare_inference, verify_saved_model
 from .training.trainer import make_trainer
 from .training.metrics import compute_metrics
 from .utils.runs import ROOT, run_context, save_json
@@ -128,11 +128,72 @@ def finetune(config=None, allow_cpu=False):
         trainer.save_model(str(out / "best_model"))
         tokenizer.save_pretrained(str(out / "best_model"))
         metrics, rows = evaluate_model(trainer, tokenized["test"], raw["test"], out)
-        reloaded, reloaded_tokenizer = load_model(str(out / "best_model"))
-        checks = manual_predict(reloaded, reloaded_tokenizer, [raw["test"][0]["text"]], cfg["max_length"])
-        original = manual_predict(trainer.model, tokenizer, [raw["test"][0]["text"]], cfg["max_length"])
-        if not np.allclose(checks[0]["probabilities"], original[0]["probabilities"], atol=1e-5):
-            raise AssertionError("Checkpoint reload predictions differ")
+        checks = verify_saved_model(trainer.model, out / "best_model",
+                                    [raw["test"][0]["text"]], cfg["max_length"])
         save_json(out / "reload_check.json", checks)
         report_run(out, metrics, rows)
+    return out
+
+
+def recover_reload_failure(out):
+    """Complete only the known post-training reload check, without retraining."""
+    from filelock import FileLock
+    from .utils.runs import hash_file, Tee
+    from contextlib import redirect_stdout, redirect_stderr
+    import sys
+    out = Path(out).resolve()
+    required = ["config.json", "train_metrics.json", "test_metrics.json", "all_predictions.json",
+                "sample_predictions.json", "data_statistics.json", "console.log", "status.json",
+                "learning_curves.png", "confusion_matrix.png", "metrics_bar.png",
+                "token_length_distribution.png", "sample_predictions.png", "manifest.json"]
+    for name in required:
+        if not (out / name).is_file():
+            raise RuntimeError(f"Cannot recover incomplete run: missing {name}")
+    if json.loads((out / "status.json").read_text())["status"] != "failed":
+        raise RuntimeError("Recovery is only for a failed reload-check run")
+    if "Checkpoint reload predictions differ" not in (out / "console.log").read_text():
+        raise RuntimeError("Run did not fail at the expected reload check")
+    manifest = json.loads((out / "manifest.json").read_text())
+    for name, digest in manifest.items():
+        path = (out / name).resolve()
+        if not path.is_relative_to(out) or hash_file(path) != digest:
+            raise RuntimeError(f"Original run integrity check failed: {name}")
+    cfg = json.loads((out / "config.json").read_text())
+    train = json.loads((out / "train_metrics.json").read_text())
+    if train["epoch"] != cfg["exercise2"]["num_train_epochs"]:
+        raise RuntimeError("Training epochs did not finish")
+    if len(json.loads((out / "all_predictions.json").read_text())) != 1066:
+        raise RuntimeError("Expected predictions for all 1066 test examples")
+    states = [json.loads(p.read_text()) for p in (out / "checkpoints").glob("checkpoint-*/trainer_state.json")]
+    if not states:
+        raise RuntimeError("No Trainer state available to identify the selected checkpoint")
+    selected = Path(max(states, key=lambda state: state["global_step"])["best_model_checkpoint"])
+    if not selected.is_dir():
+        selected = out / "checkpoints" / selected.name
+    reference, _ = load_model(str(selected))
+    rows = json.loads((out / "sample_predictions.json").read_text())
+    metrics = json.loads((out / "test_metrics.json").read_text())
+    first = json.loads((out / "all_predictions.json").read_text())[0]["text"]
+    # Validate before changing status or registry. Original console.log is retained.
+    checks = verify_saved_model(reference, out / "best_model", [first], cfg["exercise2"]["max_length"])
+    with (out / "recovery.log").open("a", encoding="utf-8") as log:
+        with redirect_stdout(Tee(sys.stdout, log)), redirect_stderr(Tee(sys.stderr, log)):
+            print("Verified exact weights against selected checkpoint:", selected.name)
+            save_json(out / "reload_check.json", checks)
+            report_run(out, metrics, rows)
+            save_json(out / "recovery.json", {"original_status": "failed", "reason": "mixed execution contexts in old reload check",
+                      "verified_against": selected.name, "retrained": False})
+            print("Recovery completed without retraining:", out.name)
+    save_json(out / "status.json", {"status": "completed", "recovered": True, "original_status": "failed"})
+    save_json(out / "manifest.json", {str(p.relative_to(out)): hash_file(p)
+              for p in sorted(out.rglob("*")) if p.is_file() and p.name != "manifest.json"})
+    root = out.parents[2]
+    registry = root / "config/workflow.json"
+    with FileLock(str(root / "outputs/.registry.lock")):
+        state = json.loads(registry.read_text())
+        for run in state["runs"]:
+            if run["id"] == out.name:
+                run.update(status="completed", recovered=True, original_status="failed")
+        state["active_runs"]["finetuning"] = out.name
+        save_json(registry, state)
     return out

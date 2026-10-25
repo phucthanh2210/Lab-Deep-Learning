@@ -87,3 +87,11 @@ Mã nguồn đáp ứng phạm vi triển khai; chất lượng mô hình trên 
 ## Cập nhật kiểm thử trên Kaggle GPU
 
 Test Trainer trước đây giả định global_step=4 và FP16 luôn tắt, chỉ đúng với môi trường CPU đã kiểm chứng. Đã sửa để tính số bước từ độ dài dataloader thực tế (bao gồm nhiều GPU) và kiểm tra FP16 theo yêu cầu cấu hình cùng CUDA availability. Thêm hai trường hợp yêu cầu FP16 bật/tắt. Sau sửa: **10 passed trên CPU**; cần chạy lại trên Kaggle để xác minh GPU, không khẳng định đã kiểm chứng GPU tại máy cloud.
+
+## Sửa kiểm tra checkpoint sau fine-tuning GPU
+
+Log Kaggle do người dùng cung cấp cho run `20261025T174902Z_finetuning_1e3ae3c9` ghi nhận đủ official splits và hoàn thành ba epochs (1.602 optimizer steps), test accuracy 0.8395872420 và binary F1 0.8406337372. Sau đó run lỗi ở assertion reload cũ, nên chưa được ghi nhận hoàn tất toàn bộ pipeline.
+
+Kiểm tra cũ so sánh live model của Trainer/Accelerate trên CUDA với model tải lại trên CPU, có thể khác ngữ cảnh autocast và sai số số học. Bản sửa kiểm tra tensor trọng số khớp chính xác trước, rồi so sánh suy luận trên hai instance sạch trong cùng CPU FP32. Không nới tolerance để che lỗi trọng số.
+
+Thêm script khôi phục riêng, chỉ dùng khi đủ artifacts/epochs và lỗi reload đã biết. Giữ log lỗi, kiểm tra manifest trước khi khôi phục, kiểm tra best checkpoint, tạo report và cập nhật registry/manifest mà không train lại. Kiểm thử CPU: **11 passed**, gồm forward wrapper, phát hiện trọng số sai và khôi phục run fixture. Việc khôi phục run Kaggle thật vẫn cần thực thi tại máy của người dùng.

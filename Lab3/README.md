@@ -122,3 +122,13 @@ Xem [báo cáo](walkthrough_lab_03.md). Không có số liệu Accuracy/F1 full-
 | Pytest | Tests offline bao gồm pipeline/manual, sanity và end-to-end fixture |
 | JSON config | `config.json`, `workflow.json` |
 | Sanity gate | Chỉ trong tests, không thay đổi trọng số trước train chính |
+
+## Khôi phục run lỗi ở bước reload cũ
+
+Nếu train/evaluate đã hoàn tất nhưng phiên bản cũ báo `Checkpoint reload predictions differ`, không cần train lại:
+
+```bash
+python Lab3/scripts/recover_run.py --run-dir Lab3/outputs/runs/<run_id>
+```
+
+Script kiểm tra SHA256 artifacts gốc, đủ epochs và 1.066 dự đoán test, so sánh chính xác trọng số `best_model` với checkpoint được Trainer chọn, rồi kiểm tra suy luận trong cùng CPU FP32. Chỉ khi kiểm tra đạt mới tạo báo cáo và cập nhật trạng thái/registry. Log lỗi gốc được giữ, thêm `recovery.log` và `recovery.json`, cập nhật manifest. Không đổi metrics và không huấn luyện lại.

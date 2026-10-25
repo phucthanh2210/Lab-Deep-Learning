@@ -53,3 +53,19 @@ def test_complete_workflow_with_local_fixture(tiny, tmp_path, monkeypatch):
     assert (out / "best_model/model.safetensors").is_file()
     assert (out / "reload_check.json").is_file()
     assert (out / "report.md").is_file()
+    # Simulate the historical post-training failure with saved artifacts retained.
+    from src.utils.runs import save_json, hash_file
+    predictions = json.loads((out / "all_predictions.json").read_text())
+    save_json(out / "all_predictions.json", [predictions[0]] * 1066)
+    save_json(out / "status.json", {"status": "failed"})
+    with (out / "console.log").open("a") as stream:
+        stream.write("\nAssertionError: Checkpoint reload predictions differ\n")
+    save_json(out / "manifest.json", {str(p.relative_to(out)): hash_file(p)
+        for p in out.rglob("*") if p.is_file() and p.name != "manifest.json"})
+    workflow.recover_reload_failure(out)
+    status = json.loads((out / "status.json").read_text())
+    assert status["status"] == "completed" and status["recovered"]
+    assert json.loads((out / "recovery.json").read_text())["retrained"] is False
+    assert json.loads((tmp_path / "config/workflow.json").read_text())["active_runs"]["finetuning"] == out.name
+    for name, digest in json.loads((out / "manifest.json").read_text()).items():
+        assert hash_file(out / name) == digest
