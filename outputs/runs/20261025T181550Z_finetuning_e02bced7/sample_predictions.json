@@ -1,0 +1,58 @@
+[
+  {
+    "index": 823,
+    "text": "a tired , predictable , bordering on offensive , waste of time , money and celluloid .",
+    "true_label": 0,
+    "predicted_label": 0,
+    "confidence": 0.9964134097099304
+  },
+  {
+    "index": 1017,
+    "text": "the plot is paper-thin and the characters aren't interesting enough to watch them go about their daily activities for two whole hours .",
+    "true_label": 0,
+    "predicted_label": 0,
+    "confidence": 0.9963215589523315
+  },
+  {
+    "index": 85,
+    "text": "a captivating and intimate study about dying and loving . . .",
+    "true_label": 1,
+    "predicted_label": 1,
+    "confidence": 0.9970536231994629
+  },
+  {
+    "index": 465,
+    "text": "a compelling story of musical passion against governmental odds .",
+    "true_label": 1,
+    "predicted_label": 1,
+    "confidence": 0.9970247149467468
+  },
+  {
+    "index": 1014,
+    "text": "hey arnold ! is now stretched to barely feature length , with a little more attention paid to the animation . still , the updated dickensian sensibility of writer craig bartlett's story is appealing .",
+    "true_label": 0,
+    "predicted_label": 1,
+    "confidence": 0.9960775971412659
+  },
+  {
+    "index": 939,
+    "text": "entertains not so much because of its music or comic antics , but through the perverse pleasure of watching disney scrape the bottom of its own cracker barrel .",
+    "true_label": 0,
+    "predicted_label": 1,
+    "confidence": 0.9958256483078003
+  },
+  {
+    "index": 219,
+    "text": "a movie where story is almost an afterthought amidst a swirl of colors and inexplicable events .",
+    "true_label": 1,
+    "predicted_label": 0,
+    "confidence": 0.9956091046333313
+  },
+  {
+    "index": 470,
+    "text": "the wild thornberrys movie has all the sibling rivalry and general family chaos to which anyone can relate .",
+    "true_label": 1,
+    "predicted_label": 0,
+    "confidence": 0.9956091046333313
+  }
+]

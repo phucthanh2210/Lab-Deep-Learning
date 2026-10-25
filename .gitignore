@@ -5,3 +5,7 @@ __pycache__/
 Lab3/data/
 Lab3/outputs/
 *.egg-info/
+
+# Keep model weights locally
+**/best_model/
+**/checkpoints/

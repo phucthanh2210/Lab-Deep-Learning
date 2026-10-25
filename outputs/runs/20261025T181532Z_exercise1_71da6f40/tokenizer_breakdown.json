@@ -1,0 +1,33 @@
+{
+  "text": "I love this wonderful movie!",
+  "tokens": [
+    "[CLS]",
+    "i",
+    "love",
+    "this",
+    "wonderful",
+    "movie",
+    "!",
+    "[SEP]"
+  ],
+  "input_ids": [
+    101,
+    1045,
+    2293,
+    2023,
+    6919,
+    3185,
+    999,
+    102
+  ],
+  "attention_mask": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ]
+}

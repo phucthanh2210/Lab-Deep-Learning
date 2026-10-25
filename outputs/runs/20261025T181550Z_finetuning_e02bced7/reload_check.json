@@ -1,0 +1,15 @@
+{
+  "weights_exact_match": true,
+  "execution": "CPU FP32, clean forward methods",
+  "predictions": [
+    {
+      "text": "lovingly photographed in the manner of a golden book sprung to life , stuart little 2 manages sweetness largely without stickiness .",
+      "label": "POSITIVE",
+      "score": 0.9718583226203918,
+      "probabilities": [
+        0.02814166434109211,
+        0.9718583226203918
+      ]
+    }
+  ]
+}

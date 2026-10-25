@@ -1,0 +1,8 @@
+{
+  "model_commit": "12040accade4e8a0f71eabdb258fecc2e7e948be",
+  "dataset_fingerprints": {
+    "train": "0346a9d2308d9056",
+    "validation": "4d310508c191379e",
+    "test": "23aa2ff3ad95b6f5"
+  }
+}

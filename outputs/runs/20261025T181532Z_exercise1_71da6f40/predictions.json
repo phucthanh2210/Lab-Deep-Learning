@@ -1,0 +1,45 @@
+{
+  "pipeline": [
+    {
+      "label": "POSITIVE",
+      "score": 0.9998775720596313
+    },
+    {
+      "label": "NEGATIVE",
+      "score": 0.9997683167457581
+    },
+    {
+      "label": "NEGATIVE",
+      "score": 0.9967492818832397
+    }
+  ],
+  "manual": [
+    {
+      "text": "I love this wonderful movie!",
+      "label": "POSITIVE",
+      "score": 0.9998775720596313,
+      "probabilities": [
+        0.0001224386360263452,
+        0.9998775720596313
+      ]
+    },
+    {
+      "text": "This movie was terrible and boring.",
+      "label": "NEGATIVE",
+      "score": 0.9997683167457581,
+      "probabilities": [
+        0.9997683167457581,
+        0.00023167315521277487
+      ]
+    },
+    {
+      "text": "The acting was good, but the story was disappointing.",
+      "label": "NEGATIVE",
+      "score": 0.9967492818832397,
+      "probabilities": [
+        0.9967492818832397,
+        0.0032507420983165503
+      ]
+    }
+  ]
+}

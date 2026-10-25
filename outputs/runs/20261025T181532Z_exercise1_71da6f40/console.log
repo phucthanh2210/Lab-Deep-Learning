@@ -1,0 +1,63 @@
+Run: 20261025T181532Z_exercise1_71da6f40
+{
+  "text": "I love this wonderful movie!",
+  "tokens": [
+    "[CLS]",
+    "i",
+    "love",
+    "this",
+    "wonderful",
+    "movie",
+    "!",
+    "[SEP]"
+  ],
+  "input_ids": [
+    101,
+    1045,
+    2293,
+    2023,
+    6919,
+    3185,
+    999,
+    102
+  ],
+  "attention_mask": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ]
+}
+[
+  {
+    "text": "I love this wonderful movie!",
+    "label": "POSITIVE",
+    "score": 0.9998775720596313,
+    "probabilities": [
+      0.0001224386360263452,
+      0.9998775720596313
+    ]
+  },
+  {
+    "text": "This movie was terrible and boring.",
+    "label": "NEGATIVE",
+    "score": 0.9997683167457581,
+    "probabilities": [
+      0.9997683167457581,
+      0.00023167315521277487
+    ]
+  },
+  {
+    "text": "The acting was good, but the story was disappointing.",
+    "label": "NEGATIVE",
+    "score": 0.9967492818832397,
+    "probabilities": [
+      0.9967492818832397,
+      0.0032507420983165503
+    ]
+  }
+]
