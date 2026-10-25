@@ -1,97 +1,183 @@
-# Lab 03 — Báo cáo triển khai và trạng thái thực nghiệm
+# Báo cáo thực hành Lab 03 — Getting started with Hugging Face
 
-## 1. Đặc tả và thiết kế
+**Môn học:** Deep Learning — UTH.
+**Phạm vi:** Exercise 1 (sentiment inference) và Exercise 2 (binary text classification fine-tuning).
+**Dữ liệu và mô hình:** toàn bộ Rotten Tomatoes, DistilBERT, Hugging Face Transformers/Datasets/Trainer.
 
-### 1.0. Cách hiểu đề bài
+## 1. Đặc tả, cơ sở lý thuyết và phương pháp
 
-Exercise 1 dùng mô hình sentiment pretrained trên Hugging Face, tokenize câu và dự đoán cảm xúc. Exercise 2 tải dữ liệu nhị phân, tải backbone/tokenizer, tiền xử lý, cấu hình TrainingArguments, fine-tune qua Trainer và đánh giá.
+### 1.0. Diễn giải đề bài và sản phẩm
 
-Theo yêu cầu mở rộng, bài dùng đầy đủ Rotten Tomatoes, ba notebook, run tracking độc lập, năm biểu đồ và phân tích lỗi. Không đặt ngưỡng accuracy giả định; mục tiêu đầu tiên là thực hiện và đo đúng quy trình.
+Exercise 1 yêu cầu cài Transformers, tải mô hình sentiment pretrained, tokenize câu và dự đoán cảm xúc. Exercise 2 yêu cầu cài Transformers/Datasets/Evaluate, tải dataset nhị phân, tải backbone/tokenizer, tiền xử lý, thiết lập TrainingArguments, tạo Trainer, fine-tune và đánh giá.
 
-### 1.1. Data/model contract
+Bài làm bổ sung ba notebook, module dùng chung với CLI, JSON config, run tracking độc lập, kiểm thử và năm biểu đồ theo yêu cầu người dùng. Đề giảng viên không đặt ngưỡng Accuracy 85%; không lấy ngưỡng đó làm điều kiện sửa hoặc chọn kết quả test.
 
-- Official splits: 8.530 train, 1.066 validation, 1.066 test. Loader kiểm tra kích thước và nhãn 0/1; không lấy subset.
-- Tokenization: tối đa 128 tokens, truncation, dynamic padding. Batch có `input_ids`, `attention_mask`, `labels`.
-- Backbone: DistilBERT; logits `(batch_size, 2)`, cross-entropy loss, AdamW.
-- Pretrained sentiment model của Exercise 1 được phân biệt với backbone chưa fine-tune của Exercise 2.
-- Chọn checkpoint bằng validation accuracy. Test chỉ đánh giá sau huấn luyện, không dùng để chọn siêu tham số.
+### 1.1. Bài toán và dữ liệu
 
-### 1.2. Tái lập và lưu artifacts
+Với văn bản đầu vào $x$, mô hình dự đoán $y \in \{0,1\}$, lần lượt Negative và Positive. Dataset `cornell-movie-review-data/rotten_tomatoes` được dùng đầy đủ, giữ nguyên các split chính thức:
 
-Seed 42 qua Hugging Face `set_seed`, bao gồm Python/NumPy/PyTorch; cuDNN benchmark tắt, deterministic bật. Không khẳng định seed tạo ra kết quả giống hệt trên mọi thiết bị hoặc phiên bản.
+| Split | Số mẫu | Vai trò |
+|---|---:|---|
+| Train | 8.530 | Cập nhật trọng số |
+| Validation | 1.066 | Chọn checkpoint |
+| Test | 1.066 | Đánh giá cuối sau lựa chọn |
 
-Config trực tiếp được pin phiên bản thư viện; revision Hub có thể đặt SHA trong config. Run ghi môi trường, model commit và dataset fingerprints. Mỗi run có UUID, UTC timestamp, config, console log, trạng thái, SHA256 manifest. Registry lưu active run thành công gần nhất và lịch sử cả run lỗi.
+Tập test có 533 mẫu mỗi lớp, xác nhận từ toàn bộ nhãn trong `all_predictions.json`. Không lấy subset hoặc tự chia lại validation. Việc giữ official splits tránh chủ động dùng test trong lựa chọn mô hình; chưa có kiểm toán duplicate/leakage toàn bộ văn bản train-validation-test trong artifacts hiện tại, nên không khẳng định đã chứng minh hoàn toàn không có trùng lặp ngữ nghĩa.
 
-## 2. Triển khai và kiểm chứng
+Tham chiếu đơn giản: luôn đoán Negative trên test cân bằng đạt Accuracy 50%, Macro F1 33,33%. Đây là baseline hằng từ phân bố nhãn, không phải kết quả của backbone DistilBERT chưa fine-tune. Không gán một accuracy giả định cho đầu phân loại khởi tạo ngẫu nhiên.
 
-### 2.1. Các thay đổi so với bản tham khảo
+### 1.2. Transformer, DistilBERT và đầu phân loại
 
-- IMDB subset được thay bằng toàn bộ Rotten Tomatoes và giữ nguyên official validation split.
-- Notebook/CLI dùng chung workflow; không có hai cách chia dữ liệu hoặc hai quy trình huấn luyện khác nhau.
-- Sanity overfit dùng mô hình disposable trong tests; mô hình train chính tải mới.
-- CLI suy luận mặc định dùng mô hình sentiment pretrained; đánh giá yêu cầu checkpoint có thật, không âm thầm quay về backbone.
-- FP16 chỉ bật trên CUDA. Warmup ratio trong config thực sự được truyền cho TrainingArguments.
-- Có train/validation learning curves, confusion matrix số lượng và phần trăm chuẩn hóa, metrics bar, token-length KDE/cutoff, bảng dự đoán đúng/sai.
-- Accuracy và binary/macro Precision/Recall/F1 tính tại máy bằng scikit-learn. `evaluate` được cài theo đề và ghi phiên bản, không tải code metric từ Hub.
+Self-attention kết hợp thông tin của các token:
 
-### 2.2. Bằng chứng kiểm thử đã chạy
+$$\operatorname{Attention}(Q,K,V)=\operatorname{softmax}(QK^T/\sqrt{d_k})V.$$
 
-Môi trường kiểm thử: Linux, CPython 3.12.14, PyTorch 2.6.0+cpu, Transformers 4.48.3, Datasets 3.2.0. Không có GPU.
+DistilBERT là transformer encoder rút gọn từ BERT bằng knowledge distillation, có sáu lớp encoder trong backbone sử dụng. `AutoModelForSequenceClassification` bổ sung pre-classifier, activation, dropout và classifier hai lớp. Khi tải backbone vào bài phân loại, cảnh báo các trọng số classifier mới khởi tạo là bình thường; các trọng số đó cần được huấn luyện.
 
-Lệnh chạy tại `Lab3/`:
+Với logits $z \in \mathbb{R}^2$, xác suất $p_c=e^{z_c}/\sum_j e^{z_j}$ và dự đoán $\hat y=\arg\max_c p_c$. Hàm mục tiêu là cross-entropy; tối ưu bằng AdamW. Logits có shape `(B,2)`; `input_ids`, `attention_mask` có shape `(B,S)`.
 
-```bash
-python -m pytest -q
+### 1.3. Tokenization và tiền xử lý
+
+WordPiece ánh xạ văn bản sang vocabulary IDs, thêm `[CLS]` đầu chuỗi và `[SEP]` cuối chuỗi. Attention mask 1 đánh dấu token thật, 0 là padding. Truncation tối đa 128 tokens; dynamic padding bằng `DataCollatorWithPadding` đệm đến chiều dài lớn nhất trong từng batch.
+
+Thống kê thực từ train: **trung bình 27,3683 tokens, tối đa 78, tỉ lệ bị cắt 0%**. Các số này có trong `data_statistics.json`; không suy rộng thống kê độ dài train sang hai split còn lại khi chưa đo.
+
+### 1.4. Thiết kế thí nghiệm và tái lập
+
+| Tham số | Giá trị |
+|---|---|
+| Backbone | `distilbert/distilbert-base-uncased` |
+| Seed | 42 |
+| Epochs | 3 |
+| Batch train/eval | 16 / 32 |
+| Learning rate | 2e-5 |
+| Weight decay | 0,01 |
+| Warmup ratio | 0,1 |
+| Eval/save strategy | Mỗi epoch |
+| Chọn best checkpoint | Validation accuracy |
+| Mixed precision | FP16 trên CUDA |
+
+Mô hình fine-tuning được tải mới; sanity overfit trong tests dùng mô hình disposable, không làm thay đổi trọng số train chính. Cố định seed bằng `set_seed`; cuDNN benchmark tắt, deterministic bật. Seed không đảm bảo mọi thiết bị/phiên bản cho kết quả bit-identical.
+
+Môi trường Kaggle ghi nhận: **CPython 3.12.15, Tesla T4, PyTorch 2.6.0, Transformers 4.48.3, Datasets 3.2.0, Evaluate 0.4.3, Accelerate 1.3.0**. Metric thực tính bằng scikit-learn 1.6.1 tại máy, tránh tải metric scripts từ Hub. `evaluate` được cài và ghi phiên bản theo đề, nhưng không được dùng để tính các metric báo cáo.
+
+Backbone commit thực: `12040accade4e8a0f71eabdb258fecc2e7e948be`. Dataset fingerprints train/validation/test lần lượt `0346a9d2308d9056`, `4d310508c191379e`, `23aa2ff3ad95b6f5`. Config Hub dùng revision `main`; fingerprints không thay thế dataset commit SHA. Vì chưa lưu dataset commit cụ thể, không khẳng định khả năng phục dựng tuyệt đối từ Hub nếu `main` thay đổi sau này.
+
+## 2. Thực nghiệm và bằng chứng
+
+### 2.1. Exercise 1 — Pretrained sentiment analysis
+
+Run: [`20261025T181532Z_exercise1_71da6f40`](outputs/runs/20261025T181532Z_exercise1_71da6f40/).
+
+Mô hình: `distilbert/distilbert-base-uncased-finetuned-sst-2-english`, đã fine-tune trên SST-2.
+
+Câu `I love this wonderful movie!` được tokenize thành:
+
+```text
+[CLS] i love this wonderful movie ! [SEP]
+101 1045 2293 2023 6919 3185 999 102
 ```
 
-Kết quả: **9 passed**. Các test dùng dữ liệu fixture và DistilBERT rất nhỏ được khởi tạo cục bộ; không tải mô hình/dataset trên Hub.
+Mask toàn 1 vì không có padding trong câu này.
 
-1. Kiểm tra hợp đồng đủ split và từ chối split thiếu mẫu bằng dataset fixture.
-2. Kiểm tra tokenization, truncation, dynamic padding và labels.
-3. So sánh xác suất/nhãn pipeline với manual logits.
-4. Kiểm tra lưu/tải checkpoint giữ nguyên dự đoán.
-5. Sanity overfit một mini-batch: loss < 0.05 trên mô hình nhỏ dùng riêng.
-6. Trainer train/evaluate, checkpoint tốt nhất và metrics.
-7. Run tracking: không ghi đè, console log, manifest, active registry khi run lỗi.
-8. Xuất đủ năm file PNG.
-9. Workflow từ đầu đến cuối trên fixture: train, evaluate, checkpoint reload, JSON predictions, report và năm biểu đồ.
+| Câu mẫu | Nhãn | Confidence xấp xỉ |
+|---|---|---:|
+| I love this wonderful movie! | POSITIVE | 99,99% |
+| This movie was terrible and boring. | NEGATIVE | 99,98% |
+| The acting was good, but the story was disappointing. | NEGATIVE | 99,67% |
 
-Kiểm thử bắt được và đã sửa lỗi trong callback đo train accuracy: `evaluate()` có thể reset cờ điều khiển của Trainer, làm mất lịch validation/save. Callback hiện bảo toàn cờ; test xác nhận `best_model_checkpoint` thực sự tồn tại.
+Pipeline và manual forward được kiểm tra trên cùng ba câu với tolerance score `1e-5`. Cả ba khớp. Đây là kiểm chứng nhất quán API, không phải đo accuracy tổng quát của mô hình sentiment.
 
-`pip check` không phát hiện xung đột dependency. Các cảnh báo deprecation từ Matplotlib/Pyparsing và Datasets được giữ nguyên, không tắt assertions hoặc bỏ qua test lỗi.
+### 2.2. Exercise 2 — Quá trình fine-tuning
 
-### 2.3. Phần chưa thể kiểm chứng trong máy cloud
+Run hiện hành: [`20261025T181550Z_finetuning_e02bced7`](outputs/runs/20261025T181550Z_finetuning_e02bced7/). Mỗi run có config, environment snapshot, log, provenance, status và SHA256 manifest riêng.
 
-Truy vấn Hugging Face Hub bị proxy trả `403 Forbidden`; máy cũng không có CUDA. Vì vậy:
+| Epoch | Bước | Loss tối ưu trong epoch | Train accuracy (eval mode) | Validation loss | Validation accuracy |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 534 | 0,4609 | 88,08% | 0,4036 | 82,27% |
+| 2 | 1.068 | 0,2597 | 95,98% | 0,3787 | 84,15% |
+| 3 | 1.602 | 0,1515 | 97,21% | 0,4896 | 84,33% |
 
-- Chưa tải và xác nhận trực tiếp dữ liệu thật trong máy này.
-- Chưa chạy suy luận với trọng số sentiment thật.
-- Chưa fine-tune toàn bộ 8.530 mẫu và chưa có Accuracy/F1 test thực của bản mới.
-- Chưa có năm biểu đồ hoặc phân tích lỗi từ một run Rotten Tomatoes thật. Tests đã xác minh khả năng tạo chúng với fixture, không thay thế thực nghiệm.
+Toàn bộ train hoàn tất **1.602 optimizer steps**, thời gian Trainer ghi **95,9321 giây**, throughput khoảng 266,751 training samples/s. Không lấy throughput evaluate train để mô tả tốc độ huấn luyện.
 
-Không dùng số liệu IMDB 86.4%/86.5% hoặc các số liệu cũ để gán cho bài này. Notebook không chèn output chưa thực thi.
+Train loss khi evaluate cuối từng epoch là 0,2939 / 0,1261 / 0,0935; không đồng nhất với loss tối ưu trung bình trong epoch vì model mode và thời điểm đo khác nhau.
 
-## 3. Quy trình hoàn tất báo cáo thực nghiệm
+Epoch 3 có validation accuracy cao nhất nên được chọn đúng tiêu chí. Epoch 2 có validation loss thấp nhất. Không đổi tiêu chí chọn mô hình sau khi đã quan sát kết quả test.
 
-Chạy trên Kaggle/Colab hoặc máy GPU có truy cập Hugging Face, theo README:
+### 2.3. Hệ thống biểu đồ
 
-1. Cài requirements và xác nhận CUDA.
-2. Chạy tests, rồi Exercise 1.
-3. Chạy `python Lab3/scripts/train_finetune.py` từ gốc repo: đủ official splits, ba epochs, chọn checkpoint theo validation.
-4. Mở run hoàn thành mà `config/workflow.json` trỏ tới. Kiểm tra `status.json`, metrics, provenance, reload check và SHA256 manifest.
-5. Đọc `report.md` và `sample_predictions.json`; bổ sung phân tích riêng cho những câu thực sự bị đoán sai, phân biệt quan sát với giả thuyết.
-6. Đồng bộ số liệu trong báo cáo nộp với đúng run ID; lưu checkpoint ngoài Git, chỉ chia sẻ artifacts nhẹ cần thiết.
+Các hình dưới là artifacts gốc đã được đối chiếu SHA256, không vẽ lại từ số liệu suy đoán.
 
-Mã nguồn đáp ứng phạm vi triển khai; chất lượng mô hình trên dataset thật vẫn cần thực nghiệm GPU. Không xem kiểm thử offline là bằng chứng đã hoàn tất fine-tuning thật.
+![Learning curves](outputs/runs/20261025T181550Z_finetuning_e02bced7/learning_curves.png)
 
-## Cập nhật kiểm thử trên Kaggle GPU
+![Confusion matrix](outputs/runs/20261025T181550Z_finetuning_e02bced7/confusion_matrix.png)
 
-Test Trainer trước đây giả định global_step=4 và FP16 luôn tắt, chỉ đúng với môi trường CPU đã kiểm chứng. Đã sửa để tính số bước từ độ dài dataloader thực tế (bao gồm nhiều GPU) và kiểm tra FP16 theo yêu cầu cấu hình cùng CUDA availability. Thêm hai trường hợp yêu cầu FP16 bật/tắt. Sau sửa: **10 passed trên CPU**; cần chạy lại trên Kaggle để xác minh GPU, không khẳng định đã kiểm chứng GPU tại máy cloud.
+![Binary test metrics](outputs/runs/20261025T181550Z_finetuning_e02bced7/metrics_bar.png)
 
-## Sửa kiểm tra checkpoint sau fine-tuning GPU
+![Train token lengths before truncation](outputs/runs/20261025T181550Z_finetuning_e02bced7/token_length_distribution.png)
 
-Log Kaggle do người dùng cung cấp cho run `20261025T174902Z_finetuning_1e3ae3c9` ghi nhận đủ official splits và hoàn thành ba epochs (1.602 optimizer steps), test accuracy 0.8395872420 và binary F1 0.8406337372. Sau đó run lỗi ở assertion reload cũ, nên chưa được ghi nhận hoàn tất toàn bộ pipeline.
+![Selected correct and incorrect predictions](outputs/runs/20261025T181550Z_finetuning_e02bced7/sample_predictions.png)
 
-Kiểm tra cũ so sánh live model của Trainer/Accelerate trên CUDA với model tải lại trên CPU, có thể khác ngữ cảnh autocast và sai số số học. Bản sửa kiểm tra tensor trọng số khớp chính xác trước, rồi so sánh suy luận trên hai instance sạch trong cùng CPU FP32. Không nới tolerance để che lỗi trọng số.
+### 2.4. Kiểm chứng độc lập sau khi tiếp nhận output
 
-Thêm script khôi phục riêng, chỉ dùng khi đủ artifacts/epochs và lỗi reload đã biết. Giữ log lỗi, kiểm tra manifest trước khi khôi phục, kiểm tra best checkpoint, tạo report và cập nhật registry/manifest mà không train lại. Kiểm thử CPU: **11 passed**, gồm forward wrapper, phát hiện trọng số sai và khôi phục run fixture. Việc khôi phục run Kaggle thật vẫn cần thực thi tại máy của người dùng.
+Lệnh `python Lab3/scripts/audit_outputs.py` thực hiện kiểm tra đọc-only trên artifacts và ghi kết quả vào [`validation/artifact_audit.json`](validation/artifact_audit.json):
+
+- SHA256 khớp với **24 tệp hiện có**: sáu của Exercise 1, 18 của fine-tuning.
+- 29 tệp vắng mặt chỉ thuộc `best_model/` và checkpoint trung gian đã chủ động bỏ khỏi Git. Giữ nguyên manifest gốc để lưu dấu vết; không coi các tệp thiếu là đã kiểm tra hash tại máy này.
+- Kiểm tra 1.066 index test liên tiếp, 533 nhãn mỗi lớp, probability vectors hợp lệ, predictions khớp argmax.
+- Tính lại Accuracy và binary/macro Precision/Recall/F1 từ toàn bộ dự đoán, khớp JSON gốc với tolerance `1e-12`.
+- Đối chiếu các sample với bản ghi đầy đủ và kiểm tra lịch sử đủ ba epochs.
+- `reload_check.json` ghi nhận trọng số khớp chính xác và suy luận CPU FP32 trên Kaggle. Máy rà soát chỉ đọc bằng chứng này; không chạy checkpoint vì weights không có trong Git.
+
+Ba notebook được thực thi toàn bộ ở `MODE="view"` với Hugging Face offline; kết quả cell và hình được lưu vào notebook. Chế độ view không tải dataset, model hoặc train lại. Bằng chứng thực thi nằm tại `validation/notebook_execution.json`.
+
+## 3. Kết quả, phân tích lỗi và kết luận
+
+### 3.1. Kết quả test của checkpoint đã chọn
+
+| Metric | Giá trị |
+|---|---:|
+| Accuracy | **83,9587%** |
+| Binary Precision | 83,5185% |
+| Binary Recall | 84,6154% |
+| Binary F1 | **84,0634%** |
+| Macro Precision | 83,9646% |
+| Macro Recall | 83,9587% |
+| Macro F1 | 83,9580% |
+
+Confusion matrix theo thứ tự `[Negative, Positive]`:
+
+| Nhãn thật / dự đoán | Negative | Positive |
+|---|---:|---:|
+| Negative | TN = 444 | FP = 89 |
+| Positive | FN = 82 | TP = 451 |
+
+Đúng **895**, sai **171** trên 1.066 mẫu. Recall Negative là 444/533 = 83,30%; Recall Positive là 451/533 = 84,62%. Mô hình cao hơn baseline hằng 50% khoảng **33,96 điểm phần trăm accuracy**, nhưng chưa có nhiều seed để kết luận về biến thiên hoặc ý nghĩa thống kê.
+
+### 3.2. Phân tích khả năng tổng quát hóa
+
+Train accuracy tăng đến 97,21% trong khi validation accuracy 84,33%, chênh khoảng 12,88 điểm phần trăm. Validation loss tăng mạnh ở epoch 3 trong khi loss train tiếp tục giảm: dấu hiệu overfitting. Accuracy validation chỉ tăng 2/1.066 mẫu từ epoch 2 đến epoch 3, nên không diễn giải cải thiện đó là lớn.
+
+Nếu thực hiện thí nghiệm tiếp theo, có thể đánh giá early stopping hoặc regularization bằng validation và ngân sách cố định trước; không dùng test để tiếp tục chọn siêu tham số. Kết quả hiện hành được giữ nguyên, không loại run vì chưa đạt một mốc tự đặt.
+
+### 3.3. Phân tích định tính các lỗi thực
+
+Các mẫu trong `sample_predictions.json` ưu tiên confidence cao của cả đúng/sai và cả hai nhãn, không phải mẫu ngẫu nhiên đại diện toàn bộ test. Diễn giải sau là giả thuyết ngôn ngữ, chưa phải causal attribution.
+
+**Hey Arnold — Negative bị dự đoán Positive (confidence khoảng 99,6%).** Câu chê “stretched to barely feature length” nhưng kết thúc bằng “story is appealing” và có lời khen hình ảnh. Hai chiều cảm xúc có thể khiến mô hình thiên về các tín hiệu khen cuối câu. Không chỉ gắn nhãn chung chung là lỗi phủ định: cấu trúc trộn lời chê và lời khen mới là điểm nổi bật.
+
+**Disney — Negative bị dự đoán Positive (khoảng 99,6%).** Câu “entertains not so much … but through the perverse pleasure … scrape the bottom of its own cracker barrel” dùng mỉa mai. “Entertains” có vẻ tích cực, nhưng thành ngữ và ngữ cảnh chê việc Disney cạn ý tưởng mới quyết định sắc thái chung. Phân loại dựa vào từ cảm xúc đơn lẻ có thể thất bại ở cấu trúc này.
+
+**“story is almost an afterthought” — Positive bị dự đoán Negative (khoảng 99,6%).** “Afterthought” và “inexplicable” thường mang nghĩa chê, trong khi câu có thể mô tả trải nghiệm thiên về màu sắc được dataset xem tích cực. Nhãn thật được giữ như dataset cung cấp; không khẳng định nhãn sai chỉ vì con người cũng có thể thấy câu mơ hồ.
+
+**The Wild Thornberrys — Positive bị dự đoán Negative (khoảng 99,6%).** “Sibling rivalry” và “family chaos” nói về nội dung xung đột gia đình. Cụm “to which anyone can relate” lại thể hiện tính gần gũi và đồng cảm tích cực. Mô hình có thể nhầm từ vựng mô tả cốt truyện với thái độ đánh giá.
+
+Một số dự đoán sai vẫn có confidence cao. Điều này chứng minh confidence không bảo đảm đúng; cần calibration curve/ECE trên tập phù hợp để kết luận đầy đủ về hiệu chuẩn, chưa được thực hiện trong lab này.
+
+### 3.4. Kết luận và khả năng sử dụng
+
+Bài thực hiện đủ hai Exercise, có mô hình pretrained cho inference, full official dataset, tokenization, TrainingArguments/Trainer, fine-tuning và đánh giá test. Các kết quả có run ID và artifacts đối chiếu được; ba notebook có thể mở xem ngay mà không cần train lại.
+
+**Giới hạn lưu trữ:** GitHub không chứa checkpoint, không có URL checkpoint công khai đã xác minh. Người thực hiện cần giữ ZIP Kaggle `lab03_results_20261025T181550Z_finetuning_e02bced7.zip`. Khôi phục `best_model/` đúng run để đánh giá/suy luận lại. SHA256 trọng số kỳ vọng: `5a63c9c2a6391132c86b0e6c08277cc23ccc692dd080b78ba2db074225bb5105`.
+
+Xem [README](README.md) cho cài đặt, train/view và lệnh eval/infer. Nhật ký sửa lỗi nội bộ nằm ở [internal_changes.md](internal_changes.md), không phải nội dung báo cáo thực nghiệm.

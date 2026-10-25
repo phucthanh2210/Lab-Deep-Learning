@@ -1,0 +1,104 @@
+{
+  "exercise1": {
+    "verified_files": 6,
+    "omitted_checkpoint_files": [],
+    "checkpoint_available_locally": false,
+    "run": "20261025T181532Z_exercise1_71da6f40",
+    "compared_sentences": 3
+  },
+  "finetuning": {
+    "verified_files": 18,
+    "omitted_checkpoint_files": [
+      "best_model/config.json",
+      "best_model/model.safetensors",
+      "best_model/special_tokens_map.json",
+      "best_model/tokenizer.json",
+      "best_model/tokenizer_config.json",
+      "best_model/training_args.bin",
+      "best_model/vocab.txt",
+      "checkpoints/checkpoint-1068/config.json",
+      "checkpoints/checkpoint-1068/model.safetensors",
+      "checkpoints/checkpoint-1068/optimizer.pt",
+      "checkpoints/checkpoint-1068/rng_state.pth",
+      "checkpoints/checkpoint-1068/scheduler.pt",
+      "checkpoints/checkpoint-1068/special_tokens_map.json",
+      "checkpoints/checkpoint-1068/tokenizer.json",
+      "checkpoints/checkpoint-1068/tokenizer_config.json",
+      "checkpoints/checkpoint-1068/trainer_state.json",
+      "checkpoints/checkpoint-1068/training_args.bin",
+      "checkpoints/checkpoint-1068/vocab.txt",
+      "checkpoints/checkpoint-1602/config.json",
+      "checkpoints/checkpoint-1602/model.safetensors",
+      "checkpoints/checkpoint-1602/optimizer.pt",
+      "checkpoints/checkpoint-1602/rng_state.pth",
+      "checkpoints/checkpoint-1602/scheduler.pt",
+      "checkpoints/checkpoint-1602/special_tokens_map.json",
+      "checkpoints/checkpoint-1602/tokenizer.json",
+      "checkpoints/checkpoint-1602/tokenizer_config.json",
+      "checkpoints/checkpoint-1602/trainer_state.json",
+      "checkpoints/checkpoint-1602/training_args.bin",
+      "checkpoints/checkpoint-1602/vocab.txt"
+    ],
+    "checkpoint_available_locally": false,
+    "run": "20261025T181550Z_finetuning_e02bced7",
+    "metrics": {
+      "accuracy": 0.8395872420262664,
+      "binary_precision": 0.8351851851851851,
+      "binary_recall": 0.8461538461538461,
+      "binary_f1": 0.8406337371854613,
+      "macro_precision": 0.8396458245317561,
+      "macro_recall": 0.8395872420262664,
+      "macro_f1": 0.8395803246833822
+    },
+    "constant_negative_baseline": {
+      "accuracy": 0.5,
+      "binary_precision": 0.0,
+      "binary_recall": 0.0,
+      "binary_f1": 0.0,
+      "macro_precision": 0.25,
+      "macro_recall": 0.5,
+      "macro_f1": 0.3333333333333333
+    },
+    "correct": 895,
+    "incorrect": 171,
+    "confusion_matrix": [
+      [
+        444,
+        89
+      ],
+      [
+        82,
+        451
+      ]
+    ],
+    "best_validation_epoch": 3.0,
+    "classification_report": {
+      "NEGATIVE": {
+        "precision": 0.844106463878327,
+        "recall": 0.8330206378986866,
+        "f1-score": 0.8385269121813032,
+        "support": 533.0
+      },
+      "POSITIVE": {
+        "precision": 0.8351851851851851,
+        "recall": 0.8461538461538461,
+        "f1-score": 0.8406337371854613,
+        "support": 533.0
+      },
+      "accuracy": 0.8395872420262664,
+      "macro avg": {
+        "precision": 0.8396458245317561,
+        "recall": 0.8395872420262664,
+        "f1-score": 0.8395803246833822,
+        "support": 1066.0
+      },
+      "weighted avg": {
+        "precision": 0.8396458245317561,
+        "recall": 0.8395872420262664,
+        "f1-score": 0.8395803246833822,
+        "support": 1066.0
+      }
+    },
+    "checkpoint_verification": "Kaggle reload_check.json; weights are not re-executed by this audit"
+  }
+}

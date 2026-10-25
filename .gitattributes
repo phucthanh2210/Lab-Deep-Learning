@@ -1,0 +1,7 @@
+# Keep byte-level manifests reproducible on Windows and Linux checkouts.
+* text=auto eol=lf
+*.png binary
+*.safetensors binary
+*.pt binary
+*.bin binary
+*.zip binary

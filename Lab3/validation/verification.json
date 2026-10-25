@@ -1,32 +1,61 @@
 {
-  "workflow": "offline local fixtures, not full Rotten Tomatoes training",
-  "python": "3.12.14",
-  "torch": "2.6.0+cpu",
-  "pytest": {
-    "tests": "9",
-    "failures": "0",
-    "errors": "0",
-    "skipped": "0"
+  "local_validation": {
+    "python": "3.12.14",
+    "torch": "2.6.0+cpu",
+    "pytest": {
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "test_cases": [
+      "test_official_split_contract",
+      "test_tokenization_and_dynamic_padding",
+      "test_real_kaggle_evidence_recomputes_metrics_without_models",
+      "test_audit_rejects_corruption_and_inconsistent_metrics",
+      "test_pipeline_matches_manual_logits",
+      "test_checkpoint_reload_preserves_predictions",
+      "test_reload_check_ignores_forward_wrappers_but_checks_weights",
+      "test_five_plots_written",
+      "test_runs_preserve_history_and_verify_manifest",
+      "test_one_batch_sanity_overfit",
+      "test_trainer_train_evaluate_and_best_checkpoint[False]",
+      "test_trainer_train_evaluate_and_best_checkpoint[True]",
+      "test_complete_workflow_with_local_fixture"
+    ],
+    "pip_check": "passed"
   },
-  "passed_tests": [
-    "test_official_split_contract",
-    "test_tokenization_and_dynamic_padding",
-    "test_pipeline_matches_manual_logits",
-    "test_checkpoint_reload_preserves_predictions",
-    "test_five_plots_written",
-    "test_runs_preserve_history_and_verify_manifest",
-    "test_one_batch_sanity_overfit",
-    "test_trainer_train_evaluate_and_best_checkpoint",
-    "test_complete_workflow_with_local_fixture"
-  ],
-  "pip_check": "passed",
-  "full_training": "not run: no GPU; Hugging Face proxy 403",
-  "real_pretrained_inference": "not run: Hugging Face proxy 403",
-  "latest_regression_check": {
-    "passed": 10,
-    "failed": 0,
-    "device": "CPU",
-    "change": "Trainer test supports effective batch size and CUDA-conditional FP16; requested FP16 true/false parametrized",
-    "gpu_validation": "pending Kaggle rerun"
+  "kaggle_experiment": {
+    "run": "20261025T181550Z_finetuning_e02bced7",
+    "status": "completed, according to SHA256-verified Kaggle artifacts",
+    "gpu": "Tesla T4",
+    "python": "3.12.15",
+    "epochs": 3,
+    "optimizer_steps": 1602,
+    "accuracy": 0.8395872420262664,
+    "binary_f1": 0.8406337371854613
+  },
+  "independent_artifact_validation": {
+    "report": "artifact_audit.json",
+    "verified_files": 24,
+    "test_predictions_recomputed": 1066,
+    "metrics_match": true,
+    "missing_files": "29 model/checkpoint files intentionally not committed",
+    "model_executed_locally": false,
+    "dataset_reloaded_locally": false
+  },
+  "notebooks": {
+    "report": "notebook_execution.json",
+    "completed": 3,
+    "mode": "view",
+    "errors": 0,
+    "hub_offline": true,
+    "training_executed_locally": false
+  },
+  "checkpoint": {
+    "available_in_git": false,
+    "reload_evidence": "Kaggle reload_check.json records weights_exact_match=true and CPU FP32 comparison",
+    "restoration": "Restore best_model/ from the owner-held Kaggle ZIP; README contains expected SHA256",
+    "public_download_url": null
   }
 }

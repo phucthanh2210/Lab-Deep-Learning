@@ -1,134 +1,153 @@
 # Lab 03 — Getting started with Hugging Face
 
-Thực hiện cả hai bài trong đề giảng viên: phân tích cảm xúc bằng mô hình pretrained và fine-tune mô hình phân loại văn bản nhị phân bằng Hugging Face Trainer.
+Bài thực hành Deep Learning — UTH: sentiment analysis bằng mô hình pretrained và fine-tuning mô hình phân loại văn bản nhị phân bằng Hugging Face Trainer.
 
-## Phạm vi và dữ liệu
+**Đã có kết quả Kaggle thật:** dùng toàn bộ Rotten Tomatoes, 8.530 train / 1.066 validation / 1.066 test. Test Accuracy **83,96%**, Binary F1 **84,06%**. Mã nguồn, notebook và báo cáo dùng chung run registry, có thể xem kết quả mà không train lại.
 
-| Thành phần | Thiết lập |
-|---|---|
-| Exercise 1 | `distilbert/distilbert-base-uncased-finetuned-sst-2-english` |
-| Exercise 2 | `distilbert/distilbert-base-uncased`, đầu phân loại hai nhãn |
-| Dataset | `cornell-movie-review-data/rotten_tomatoes` |
-| Train / validation / test | **8.530 / 1.066 / 1.066**, toàn bộ splits chính thức |
-| Tokenization | WordPiece, truncation 128, dynamic padding |
-| Fine-tuning | 3 epochs, batch 16/32, AdamW, LR 2e-5, weight decay 0.01, warmup ratio 0.1 |
-| Chọn checkpoint | Validation accuracy, đánh giá/lưu mỗi epoch |
-| Precision | FP16 khi có CUDA; CPU dùng FP32 |
+## 1. Xem bài và kết quả
 
-Không lấy mẫu nhỏ, không tự chia lại validation, không dùng test để chọn checkpoint. Sanity overfit chỉ nằm trong tests trên mô hình dùng riêng; mô hình fine-tuning được khởi tạo mới.
+- [Notebook Exercise 1](notebooks/01_sentiment_analysis_pipeline.ipynb): tokenization, pipeline và manual forward.
+- [Notebook Exercise 2](notebooks/02_finetuning_binary_classification.ipynb): dữ liệu, Trainer, metrics, năm biểu đồ và phân tích lỗi.
+- [Notebook tích hợp](notebooks/lab03_huggingface_complete.ipynb): cả hai Exercise, phù hợp xem toàn bộ bài.
+- [Báo cáo thực hành](walkthrough_lab_03.md): lý thuyết, phương pháp, kết quả và giới hạn có bằng chứng.
+- [Đề bài](description_lab_03.md).
 
-## Cài đặt
+Các notebook đã lưu output của một lượt thực thi **`MODE="view"`** trên artifacts Kaggle. Có thể đọc trực tiếp trên GitHub. Khi chạy lại notebook, mặc định view đọc dữ liệu đã commit, không tải model/dataset, không huấn luyện và không cần GPU. Đổi `MODE="train"` ở cell setup để tạo thí nghiệm mới; phần fine-tuning yêu cầu GPU theo mặc định.
 
-Khuyến nghị **Python 3.12** (đã kiểm chứng 3.12.14 trên Linux). Từ thư mục gốc repository:
-
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-# Trên Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install -r Lab3/requirements.txt
-```
-
-Với GPU CUDA 12.4, cài PyTorch tương ứng trước `requirements.txt`:
-
-```bash
-python -m pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
-python -m pip install -r Lab3/requirements.txt
-```
-
-Máy chỉ có CPU có thể cài wheel nhẹ hơn bằng `--index-url https://download.pytorch.org/whl/cpu`. Luôn kiểm tra driver và `torch.cuda.is_available()` trước huấn luyện. Không cần torchvision cho bài NLP này.
-
-Các phiên bản phụ thuộc trực tiếp được pin trong `requirements.txt`; đây chưa phải lockfile toàn bộ phụ thuộc bắc cầu. Mỗi run ghi phiên bản thực tế. Các trường revision mặc định là `main`; muốn cố định thí nghiệm, thay bằng commit Hugging Face đã xác minh. Run lưu model commit và dataset fingerprints để truy vết.
-
-## Chạy từ thư mục gốc repo
-
-```bash
-# Tests offline: mô hình DistilBERT nhỏ, dữ liệu fixture; không tải Hub
-cd Lab3
-python -m pytest -q
-cd ..
-
-# Exercise 1: mô hình sentiment thực, tải từ Hub
-python Lab3/scripts/run_exercise1.py
-
-# Exercise 2: toàn bộ dữ liệu, mặc định yêu cầu GPU
-python Lab3/scripts/train_finetune.py
-
-# Suy luận mặc định dùng mô hình sentiment đã fine-tune trên SST-2
-python Lab3/scripts/infer.py --text "This movie was wonderful!"
-
-# Đánh giá checkpoint fine-tuned: thiếu checkpoint sẽ báo lỗi, không dùng backbone thay thế
-python Lab3/scripts/eval.py --model-path Lab3/outputs/runs/<run_id>/best_model
-python Lab3/scripts/infer.py --model-path Lab3/outputs/runs/<run_id>/best_model --text "A disappointing film."
-```
-
-Nếu chủ động chấp nhận thời gian huấn luyện CPU dài, CLI hỗ trợ `--allow-cpu`. Unit test chỉ huấn luyện mô hình rất nhỏ; kết quả test không phải chất lượng mô hình trên Rotten Tomatoes.
-
-Mạng cần truy cập `huggingface.co` và các host CDN/Xet mà Hub chuyển hướng tới. Dataset và mô hình công khai không yêu cầu token. Nếu proxy chặn, cập nhật allowlist thay vì tắt TLS hoặc chèn token vào code.
-
-## Ba notebook
-
-1. [`01_sentiment_analysis_pipeline.ipynb`](notebooks/01_sentiment_analysis_pipeline.ipynb): Exercise 1, bảng tokens/IDs/mask và so sánh pipeline/manual.
-2. [`02_finetuning_binary_classification.ipynb`](notebooks/02_finetuning_binary_classification.ipynb): Exercise 2, kiểm tra splits, preprocessing, Trainer, metrics và biểu đồ.
-3. [`lab03_huggingface_complete.ipynb`](notebooks/lab03_huggingface_complete.ipynb): tích hợp cả hai bài để thực hành/nộp.
-
-Mở notebook trong checkout và chọn kernel đã cài requirements. Có thể chạy từ root, `Lab3/` hoặc `Lab3/notebooks/`. Với Kaggle/Colab: clone repository vào máy GPU, bật Internet, cài requirements phù hợp và mở notebook trong checkout. Notebook cần đi cùng `src/` và `config/`; không upload riêng một file rồi kỳ vọng module có sẵn.
-
-Các cell dùng chung `src/workflow.py` với CLI để tránh lệch cách chia dữ liệu và huấn luyện. Notebook chưa chèn output full-training vì chưa có một lần chạy đầy đủ được xác minh.
-
-## Cấu trúc
+## 2. Cấu trúc
 
 ```text
 Lab3/
-  config/       config.json, workflow.json
-  notebooks/    ba notebook
-  scripts/      run_exercise1.py, train_finetune.py, eval.py, infer.py
+  config/
+    config.json             tham số cho lần chạy mới
+    workflow.json           active runs và lịch sử
+  notebooks/                ba notebook có output
   src/
-    datasets/   tải và kiểm tra đủ official splits, tokenization
-    models/     khởi tạo mô hình, pipeline/manual inference
-    training/   Trainer, metrics, sanity test helper
-    utils/      run tracking, JSON, environment snapshot, plots
-    workflow.py quy trình dùng chung
-  tests/        dataset, Exercise 1, checkpoint, Trainer, runs, plots
-  outputs/      sinh tại runtime, không commit checkpoint/cache
+    datasets/               tải official splits, kiểm tra kích thước và tokenization
+    models/                 model, pipeline/manual, kiểm tra checkpoint
+    training/               Trainer, metrics, sanity overfit dùng riêng trong tests
+    utils/                  log, registry, manifest và plots
+    workflow.py             luồng CLI/notebook dùng chung
+    evidence.py             audit đọc-only, tính lại metrics từ dự đoán
+  scripts/                  train, eval, infer, audit và recovery
+  tests/                    tests chức năng và kiểm tra artifacts thật
+  outputs/runs/             artifacts Kaggle nhẹ, giữ nguyên manifest gốc
+  validation/               kết quả audit và thực thi notebook tại máy rà soát
+  description_lab_03.md     đề bài
+  walkthrough_lab_03.md     báo cáo thực nghiệm để nộp
+  internal_changes.md       lịch sử kỹ thuật; không thuộc báo cáo nộp
 ```
 
-## Artifacts và registry
+Đã hợp nhất các thư mục `config/` và `outputs/` được upload ở gốc repo vào `Lab3/`. Không có hai registry độc lập. Các byte artifacts gốc không bị chỉnh sửa; 24 file hiện có khớp manifest.
 
-Mỗi lần chạy tạo `outputs/runs/<UTC_timestamp>_<type>_<uuid>/` độc lập. `config/workflow.json` ghi lịch sử và active run hoàn thành gần nhất; run lỗi không thay thế active run thành công. Registry dùng file lock và thay thế JSON nguyên tử. Commit registry cập nhật chỉ khi muốn chia sẻ metadata; checkpoint thực tế vẫn phải được lưu ngoài Git.
+## 3. Cài đặt
 
-Run fine-tuning xuất:
+Khuyến nghị Python **3.12**: đã kiểm chứng CPU Linux 3.12.14 và run Kaggle ghi nhận 3.12.15. Dùng môi trường riêng, tránh hạ cấp thư viện nền Kaggle.
 
-- `config.json`, `environment_snapshot.json`, `provenance.json`, `console.log`, `status.json`, `manifest.json` (SHA256).
-- `data_statistics.json`, `trainer_history.json`, `train_metrics.json`, `test_metrics.json`.
-- **5 biểu đồ:** `learning_curves.png` (train/validation loss, train/validation accuracy), `confusion_matrix.png` (số lượng và % theo hàng), `metrics_bar.png`, `token_length_distribution.png` (KDE và cutoff), `sample_predictions.png` (bảng đúng/sai tô màu).
-- `all_predictions.json`, `sample_predictions.json`, `report.md`: ví dụ đúng/sai thật từ run. Báo cáo tự động đưa ra giả thuyết theo dấu hiệu ngôn ngữ; cần đọc và bổ sung phân tích thủ công trước khi nộp.
-- `best_model/`, `reload_check.json`: lưu và kiểm tra lại checkpoint.
-
-Accuracy và cả binary/macro Precision, Recall, F1 được tính bằng scikit-learn tại máy; `evaluate` vẫn được cài và ghi phiên bản theo đề, nhưng không cần tải metric scripts từ Hub. Confidence không phải bằng chứng về nguyên nhân dự đoán. Learning curve training loss là loss log trong quá trình tối ưu; validation loss được tính khi model ở eval mode.
-
-## Tình trạng kiểm chứng
-
-Xem [báo cáo](walkthrough_lab_03.md). Không có số liệu Accuracy/F1 full-training được khẳng định trước khi chạy thành công trên dataset thật. Các số 86.4%/86.5% của IMDB và 84.15% từ tài liệu cũ không phải kết quả của repository này.
-
-## Đối chiếu tiêu chí
-
-| Tiêu chí yêu cầu | Triển khai |
-|---|---|
-| Toàn bộ Rotten Tomatoes | Loader kiểm tra đúng 8.530/1.066/1.066 |
-| Ba notebook | Một cho mỗi bài và một tích hợp |
-| Isolated runs + registry | UUID, UTC, snapshot, log, SHA256, active runs |
-| Năm biểu đồ | Tạo từ dữ liệu thực của mỗi run |
-| Phân tích lỗi | JSON toàn bộ dự đoán, mẫu đúng/sai, báo cáo theo run |
-| Pytest | Tests offline bao gồm pipeline/manual, sanity và end-to-end fixture |
-| JSON config | `config.json`, `workflow.json` |
-| Sanity gate | Chỉ trong tests, không thay đổi trọng số trước train chính |
-
-## Khôi phục run lỗi ở bước reload cũ
-
-Nếu train/evaluate đã hoàn tất nhưng phiên bản cũ báo `Checkpoint reload predictions differ`, không cần train lại:
+Từ gốc repo, trên Linux/Kaggle:
 
 ```bash
-python Lab3/scripts/recover_run.py --run-dir Lab3/outputs/runs/<run_id>
+python -m pip install uv
+uv python install 3.12
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -r Lab3/requirements.txt
+uv pip check --python .venv/bin/python
 ```
 
-Script kiểm tra SHA256 artifacts gốc, đủ epochs và 1.066 dự đoán test, so sánh chính xác trọng số `best_model` với checkpoint được Trainer chọn, rồi kiểm tra suy luận trong cùng CPU FP32. Chỉ khi kiểm tra đạt mới tạo báo cáo và cập nhật trạng thái/registry. Log lỗi gốc được giữ, thêm `recovery.log` và `recovery.json`, cập nhật manifest. Không đổi metrics và không huấn luyện lại.
+Trên Windows dùng `.venv\Scripts\python.exe` thay cho `.venv/bin/python`. Không cần kích hoạt nếu gọi trực tiếp interpreter.
+
+Trên Kaggle, bật **Settings -> Accelerator -> GPU** và **Internet** trước training; session restart sẽ mất biến Python và cần chạy lại các cell setup. Có thể đặt venv ngoài repo tại `/kaggle/working/lab03-py312` như phiên thực nghiệm đã chạy.
+
+`torch==2.6.0` bản Linux PyPI cung cấp CUDA build phù hợp của phiên đã kiểm chứng. Nếu cần cài wheel cụ thể trước requirements:
+
+```bash
+# CUDA 12.4: cần driver hỗ trợ; kiểm tra bằng nvidia-smi
+uv pip install --python .venv/bin/python torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+# Hoặc máy chỉ CPU dùng https://download.pytorch.org/whl/cpu
+```
+
+Requirements pin dependencies trực tiếp, chưa là lockfile toàn bộ dependency bắc cầu. Không cần torchvision. Dataset và model công khai không cần token; mạng phải truy cập được Hugging Face và các CDN/Xet chuyển hướng. Không tắt kiểm tra TLS khi gặp lỗi tải.
+
+## 4. Kiểm thử và audit (không cần GPU)
+
+```bash
+cd Lab3
+../.venv/bin/python -m pytest -q
+cd ..
+.venv/bin/python Lab3/scripts/audit_outputs.py
+```
+
+- **13 tests đạt trên CPU**: dataset contract, dynamic padding, pipeline/manual, checkpoint, sanity overfit, Trainer, run tracking, năm plots, recovery, metrics/artifact audit và phát hiện dữ liệu bị sửa.
+- Audit kiểm tra 24 file SHA256, tính lại toàn bộ bảy metrics từ 1.066 predictions và xác nhận confusion matrix.
+- 29 file checkpoint không có trong Git được liệt kê rõ là thiếu có chủ đích, không coi là đã kiểm tra tại máy rà soát.
+- Ba notebook chạy hết ở view, Hugging Face offline, không có cell lỗi. Xem `validation/notebook_execution.json`.
+
+Tests có fixture nhỏ để kiểm tra pipeline; chúng không phải benchmark Rotten Tomatoes. Audit thực dùng `all_predictions.json` từ Kaggle và không suy luận lại từ weights.
+
+## 5. Chạy thí nghiệm mới trên GPU
+
+Từ gốc repo, dùng interpreter của môi trường vừa cài:
+
+```bash
+.venv/bin/python Lab3/scripts/run_exercise1.py
+CUDA_VISIBLE_DEVICES=0 TOKENIZERS_PARALLELISM=false .venv/bin/python Lab3/scripts/train_finetune.py
+```
+
+Trên Kaggle có thể gọi các lệnh bằng `subprocess.run([...], cwd=REPO, env=RUN_ENV, check=True)`, trong đó `RUN_ENV['CUDA_VISIBLE_DEVICES']='0'`; không dùng Python mặc định của notebook nếu requirements nằm trong venv khác.
+
+Quy trình dùng toàn bộ official splits, max length 128, 3 epochs, batch train/eval 16/32, LR 2e-5, weight decay 0.01, warmup ratio 0.1, FP16 chỉ khi CUDA có sẵn. Lưu/evaluate mỗi epoch; chọn best theo validation accuracy. Sanity test không tác động mô hình train chính. Chạy lại tạo run mới, không resume hoặc ghi đè run cũ. Chỉ dùng `--allow-cpu` nếu chủ động chấp nhận thời gian full training CPU.
+
+Có thể thực thi ba notebook với MODE=train thay CLI. Không chạy notebook tích hợp và notebook từng bài đồng thời nếu chỉ muốn một lần thí nghiệm.
+
+## 6. Kết quả hiện hành và truy vết
+
+| Giai đoạn | Run được registry chọn |
+|---|---|
+| Exercise 1 | `20261025T181532Z_exercise1_71da6f40` |
+| Fine-tuning | `20261025T181550Z_finetuning_e02bced7` |
+
+| Test metric | Giá trị |
+|---|---:|
+| Accuracy | 83,9587% |
+| Binary Precision / Recall / F1 | 83,5185% / 84,6154% / 84,0634% |
+| Macro Precision / Recall / F1 | 83,9646% / 83,9587% / 83,9580% |
+| Đúng / tổng | 895 / 1.066 |
+
+Confusion matrix `[TN FP; FN TP]` = `[[444,89],[82,451]]`. Checkpoint epoch 3 được chọn theo validation accuracy 84,33%; epoch 2 có loss validation thấp hơn. Có dấu hiệu overfitting; đề không đặt ngưỡng accuracy 85%.
+
+Nguồn: [metrics](outputs/runs/20261025T181550Z_finetuning_e02bced7/test_metrics.json), [toàn bộ dự đoán](outputs/runs/20261025T181550Z_finetuning_e02bced7/all_predictions.json), [lịch sử](outputs/runs/20261025T181550Z_finetuning_e02bced7/trainer_history.json), [audit độc lập](validation/artifact_audit.json).
+
+## 7. Checkpoint, inference và lưu trữ
+
+**GitHub không chứa trọng số.** Run Kaggle lưu bằng chứng reload thành công trong `reload_check.json`; máy rà soát không chạy lại checkpoint. Không có URL weights công khai đã xác minh, nên cần giữ ZIP Kaggle của bạn.
+
+Để đánh giá/suy luận lại, giải nén `best_model/` từ ZIP vào đúng đường dẫn:
+
+```text
+Lab3/outputs/runs/20261025T181550Z_finetuning_e02bced7/best_model/
+```
+
+Rồi chạy:
+
+```bash
+.venv/bin/python Lab3/scripts/eval.py --model-path Lab3/outputs/runs/20261025T181550Z_finetuning_e02bced7/best_model
+.venv/bin/python Lab3/scripts/infer.py --model-path Lab3/outputs/runs/20261025T181550Z_finetuning_e02bced7/best_model --text "A wonderful movie."
+```
+
+Không truyền `--model-path` thì infer dùng sentiment pretrained SST-2 của Exercise 1, **không phải** mô hình Rotten Tomatoes vừa train. Eval không âm thầm fallback khi thiếu checkpoint.
+
+SHA256 weights được giữ trong manifest: `5a63c9c2a6391132c86b0e6c08277cc23ccc692dd080b78ba2db074225bb5105`. Khi đưa weights vào lại, audit sẽ kiểm tra hash thật. Không upload weights/optimizer hoặc ZIP lớn vào Git.
+
+## 8. Artifacts và chia sẻ run mới
+
+Mỗi run có config, snapshot, console log, provenance, status, SHA256 manifest, metrics, lịch sử, dự đoán và report. Năm hình: learning curves, confusion matrix chuẩn hóa kèm counts, binary metrics bar, train token-length KDE/cutoff và bảng mẫu đúng/sai.
+
+`outputs/` mặc định bị ignore để tránh đẩy nhầm model; các artifacts nhẹ của hai run hiện hành đã được commit. Với run mới, chỉ stage phần nhẹ:
+
+```bash
+git add -f -- Lab3/outputs/runs/<run_id> ':(glob,exclude)**/best_model/**' ':(glob,exclude)**/checkpoints/**'
+git add Lab3/config/workflow.json
+git diff --cached --stat
+```
+
+Giữ manifest gốc kể cả khi weights không đi cùng. Không chỉnh sửa artifacts lịch sử để làm số liệu đẹp hơn; kết quả rà soát bổ sung ghi ở `validation/`. Run registry cần đi cùng run directory khi chuyển máy.
