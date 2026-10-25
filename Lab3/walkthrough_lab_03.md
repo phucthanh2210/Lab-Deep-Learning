@@ -83,3 +83,7 @@ Chạy trên Kaggle/Colab hoặc máy GPU có truy cập Hugging Face, theo READ
 6. Đồng bộ số liệu trong báo cáo nộp với đúng run ID; lưu checkpoint ngoài Git, chỉ chia sẻ artifacts nhẹ cần thiết.
 
 Mã nguồn đáp ứng phạm vi triển khai; chất lượng mô hình trên dataset thật vẫn cần thực nghiệm GPU. Không xem kiểm thử offline là bằng chứng đã hoàn tất fine-tuning thật.
+
+## Cập nhật kiểm thử trên Kaggle GPU
+
+Test Trainer trước đây giả định global_step=4 và FP16 luôn tắt, chỉ đúng với môi trường CPU đã kiểm chứng. Đã sửa để tính số bước từ độ dài dataloader thực tế (bao gồm nhiều GPU) và kiểm tra FP16 theo yêu cầu cấu hình cùng CUDA availability. Thêm hai trường hợp yêu cầu FP16 bật/tắt. Sau sửa: **10 passed trên CPU**; cần chạy lại trên Kaggle để xác minh GPU, không khẳng định đã kiểm chứng GPU tại máy cloud.

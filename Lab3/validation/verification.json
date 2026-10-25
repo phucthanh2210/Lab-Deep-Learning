@@ -21,5 +21,12 @@
   ],
   "pip_check": "passed",
   "full_training": "not run: no GPU; Hugging Face proxy 403",
-  "real_pretrained_inference": "not run: Hugging Face proxy 403"
+  "real_pretrained_inference": "not run: Hugging Face proxy 403",
+  "latest_regression_check": {
+    "passed": 10,
+    "failed": 0,
+    "device": "CPU",
+    "change": "Trainer test supports effective batch size and CUDA-conditional FP16; requested FP16 true/false parametrized",
+    "gpu_validation": "pending Kaggle rerun"
+  }
 }

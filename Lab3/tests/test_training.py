@@ -1,3 +1,5 @@
+import pytest
+import torch
 from datasets import Dataset, DatasetDict
 from src.training.metrics import compute_metrics
 from src.training.trainer import sanity_overfit, make_trainer
@@ -8,19 +10,22 @@ def test_one_batch_sanity_overfit(tiny):
     loss = sanity_overfit(model, tok, steps=80, lr=.005)
     assert loss < .05, loss
 
-def test_trainer_train_evaluate_and_best_checkpoint(tiny, tmp_path):
+@pytest.mark.parametrize("fp16_requested", [False, True])
+def test_trainer_train_evaluate_and_best_checkpoint(tiny, tmp_path, fp16_requested):
     model, tok = tiny
     encoded = tok(["excellent movie", "terrible film"] * 4, truncation=True)
     data = Dataset.from_dict({**encoded, "label": [1, 0] * 4})
     ds = DatasetDict(train=data, validation=data, test=data)
-    cfg = dict(read_config()["exercise2"], seed=42, num_train_epochs=2, batch_size=4, eval_batch_size=4)
+    cfg = dict(read_config()["exercise2"], seed=42, num_train_epochs=2, batch_size=4, eval_batch_size=4, fp16=fp16_requested)
     trainer = make_trainer(model, tok, ds, cfg, tmp_path)
+    # Effective batch size scales with GPU count (Kaggle T4 x2 included).
+    expected_steps = len(trainer.get_train_dataloader()) * 2
     result = trainer.train()
-    assert result.global_step == 4
+    assert result.global_step == expected_steps
     assert trainer.state.best_model_checkpoint is not None
     metrics = trainer.evaluate()
     assert "eval_macro_f1" in metrics
-    assert not trainer.args.fp16
+    assert trainer.args.fp16 == (fp16_requested and torch.cuda.is_available())
     expected = compute_metrics(([[3, 0], [0, 3]], [0, 1]))
     assert expected["accuracy"] == expected["macro_f1"] == 1
 
