@@ -1,0 +1,25 @@
+{
+  "workflow": "offline local fixtures, not full Rotten Tomatoes training",
+  "python": "3.12.14",
+  "torch": "2.6.0+cpu",
+  "pytest": {
+    "tests": "9",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  "passed_tests": [
+    "test_official_split_contract",
+    "test_tokenization_and_dynamic_padding",
+    "test_pipeline_matches_manual_logits",
+    "test_checkpoint_reload_preserves_predictions",
+    "test_five_plots_written",
+    "test_runs_preserve_history_and_verify_manifest",
+    "test_one_batch_sanity_overfit",
+    "test_trainer_train_evaluate_and_best_checkpoint",
+    "test_complete_workflow_with_local_fixture"
+  ],
+  "pip_check": "passed",
+  "full_training": "not run: no GPU; Hugging Face proxy 403",
+  "real_pretrained_inference": "not run: Hugging Face proxy 403"
+}
