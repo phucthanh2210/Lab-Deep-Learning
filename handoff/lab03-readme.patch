@@ -1,0 +1,139 @@
+From 5d46453fd0b677baf2c08019009b6ebd2b758b08 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Hu=E1=BB=B3nh=20Ph=C3=BAc=20Th=C3=A0nh?=
+ <thanhphuchuynh2210@gmail.com>
+Date: Mon, 26 Oct 2026 13:16:52 +0000
+Subject: [PATCH] docs(lab03): align readmes with main guidance and verified
+ results
+
+---
+ README.md            | 35 +++++++++++++++++++++++------------
+ labs/lab03/README.md | 15 +++++++++------
+ 2 files changed, 32 insertions(+), 18 deletions(-)
+
+diff --git a/README.md b/README.md
+index 4842584..cdae54e 100644
+--- a/README.md
++++ b/README.md
+@@ -15,34 +15,45 @@ Repository containing source code, engineering workflows, and practical lab exer
+ ## Environment
+ 
+ - **Python requirement:** `>=3.12, !=3.14.1`, derived from the pinned libraries (numpy 2.5.3 needs `>=3.12`; torchvision 0.29.1 excludes `3.14.1`). Verified local build: CPython **3.13.15** (64-bit). The requirement and the verified build are recorded as comments in `requirements.txt`, never as a `python==x.y.z` pip line (invalid pip syntax).
+-- **Library pins:** see `requirements.txt` (torch 2.14.0, torchvision 0.29.1, numpy 2.5.3, pandas 3.0.2, scikit-learn 1.9.1, matplotlib 3.11.2, seaborn 0.13.2, Pillow 12.3.0, optuna 4.8.0, pyyaml 6.0.3, pytest 9.1.1).
+-- **Run-time evidence:** each lab run writes `outputs/logs/environment_snapshot.json` with the interpreter version, platform, library versions, and the resolved compute device. The Kaggle interpreter is logged per run rather than assumed equal to local.
++- **Dependency specifications:** see `requirements.txt` for the repository environment and [Lab01 requirements](https://github.com/lacthui06/Lab-DL/blob/main/labs/lab01/requirements.txt) for its supported dependency ranges. The root file mixes exact pins and lower bounds (including pandas and Optuna); it is not a complete lockfile. Actual installed versions belong to each run snapshot.
++- **Run-time evidence:** current Lab01 runs write `outputs/runs/<run_id>/environment_snapshot.json` (legacy snapshots remain in `outputs/logs/`) with the interpreter version, platform, library versions, and the resolved compute device. The Kaggle interpreter is logged per run rather than assumed equal to local.
+ 
+ ---
+ 
+-Lab03 uses its own pinned dependencies in `labs/lab03/requirements.txt` and a separate Python 3.12 environment; do not replace the Lab01 environment with these pins.
+-
+-Lab03 notebooks now include phase roadmaps, module references and persisted visual diagnostics; validation-only threshold selection has been executed on the restored checkpoint: threshold 0.8, test accuracy 84.05%, with precision/recall trade-offs documented. Historical test sensitivity plots do not choose a threshold from test.
+-
+ ## Lab Directory
+ 
+-- **Lab 01**: FashionMNIST Classification with PyTorch (Completed)
++- **Lab 01**: [FashionMNIST Classification with PyTorch](https://github.com/lacthui06/Lab-DL/blob/main/labs/lab01/README.md) — local experiments available; final PDF pending.
+ - **Lab 02**: Upcoming
+-- **Lab 03**: [Hugging Face Sentiment Analysis & Fine-tuning](labs/lab03/README.md) — full Rotten Tomatoes, executed notebooks and verified Kaggle artifacts.
++- **Lab 03**: [Hugging Face Sentiment Analysis & Fine-tuning](labs/lab03/README.md) — full official splits, executed notebooks and verified Kaggle artifacts.
+ - **Lab 04**: Upcoming
+ 
+ ---
+ 
++## Lab 03 — Hugging Face sentiment analysis
++
++This branch contains Lab03 source, notebooks and experiment artifacts. The links below open the files in this checkout; the repository `main` branch maintains the current Lab01 material.
++
++- [Lab03 README](labs/lab03/README.md): setup, Kaggle GPU training, evaluation, inference and artifact recovery.
++- [Integrated notebook](labs/lab03/notebooks/lab03_huggingface_complete.ipynb): both exercises, phase roadmaps, module references and saved visual outputs.
++- [Walkthrough](labs/lab03/walkthrough_lab_03.md): method, actual results, threshold trade-offs and limitations.
++- [Assignment and decisions](labs/lab03/description_lab_03.md): original requirements and the scope decisions.
++
++The fine-tuning experiment uses the complete official Rotten Tomatoes splits: **8,530 train / 1,066 validation / 1,066 test**. Baseline argmax test accuracy is **83.96%**, with binary F1 **84.06%**. The threshold **0.8**, selected by validation Macro F1, gives test accuracy **84.05%** and binary F1 **83.50%**. It reduces false positives while increasing false negatives; it is not an improvement across every metric.
++
++Lab03 has a separate **Python 3.12** environment and [its own requirements](labs/lab03/requirements.txt). Its dependencies must not replace the Lab01 environment. Saved results can be reviewed without training again; reloading the fine-tuned model requires the owner-held checkpoint, which is kept outside Git.
++
+ ## Lab Architecture (`labs/lab0X/`)
+ 
+ Each practical lab is organized into modular directories and a single living documentation file:
+ 
+-- `config/`: Declarative YAML configurations (`config.yaml`, `augmentations.yaml`, `experiments.yaml`).
++- `config/`: Current Lab01 configuration and explicit run registry in `workflow.json`; legacy YAML configurations remain for compatible APIs.
+ - `data/`: Experimental datasets (ignored by git).
+ - `notebooks/`: Jupyter Notebooks for interactive execution, analysis, and visualization.
+ - `src/`: Modular, production-ready Python subpackages (`datasets/`, `models/`, `training/`, `utils/`).
+ - `scripts/`: Command-line entry points (`train.py`, `eval.py`, `infer.py`).
+ - `tests/`: Mandatory TDD test suites (`test_datasets.py`, `test_models.py`, `test_training.py`).
+-- `outputs/`: Artifact store for training checkpoints (`checkpoints/`), evaluation logs (`logs/`), EDA tables & figures (`eda/`), and prediction figures (`predictions/`).
+-- `description_lab_0X.md`: Original assignment brief from instructor (input, kept verbatim).
+-- `walkthrough_lab_0X.md`: Single Living Walkthrough unifying 3 Core Rules (Section 1: Spec with brief interpretation (Mục 1.0) from `spec-driven-development`, Section 2: 5-Stage Changelog from `walkthrough-and-experiment-tracking`, Section 3: Final Report with decision traceability from `documentation-and-adrs`).
++- `outputs/`: Current per-run artifacts in `runs/<run_id>/` (config, logs, metrics, tables, figures, checkpoints); historical `checkpoints/`, `logs/`, `eda/`, and `predictions/` remain as evidence.
++- `description_lab_0X.md`: Assignment brief; Lab03 additionally separates scope discussions and decisions from the original requirements.
++- `walkthrough_lab_0X.md`: Single Living Walkthrough unifying 3 Core Rules (Section 1: Spec with brief interpretation (Mục 1.0) from `spec-driven-development`, Section 2: experiment methods and artifact-backed evidence from `walkthrough-and-experiment-tracking`, Section 3: Final Report with decision traceability from `documentation-and-adrs`).
++
++Lab01 keeps software change journals and troubleshooting logs local, outside Git and the report. See the Lab01 README for the two-notebook workflow and published report evidence.
+diff --git a/labs/lab03/README.md b/labs/lab03/README.md
+index 5beb569..b776c70 100644
+--- a/labs/lab03/README.md
++++ b/labs/lab03/README.md
+@@ -2,7 +2,7 @@
+ 
+ Bài thực hành Deep Learning — UTH: sentiment analysis bằng mô hình pretrained và fine-tuning mô hình phân loại văn bản nhị phân bằng Hugging Face Trainer.
+ 
+-**Đã có kết quả Kaggle thật:** dùng toàn bộ Rotten Tomatoes, 8.530 train / 1.066 validation / 1.066 test. Test Accuracy **83,96%**, Binary F1 **84,06%**. Mã nguồn, notebook và báo cáo dùng chung run registry, có thể xem kết quả mà không train lại.
++**Đã có kết quả Kaggle thật:** dùng toàn bộ Rotten Tomatoes, 8.530 train / 1.066 validation / 1.066 test. Test argmax Accuracy **83,96%**, Binary F1 **84,06%**; policy 0,8 chọn trên validation đạt test Accuracy **84,05%**, Binary F1 **83,50%**. Chi tiết đánh đổi ở Mục 11. Mã nguồn, notebook và báo cáo dùng chung run registry, có thể xem kết quả mà không train lại.
+ 
+ ## 1. Xem bài và kết quả
+ 
+@@ -10,7 +10,7 @@ Bài thực hành Deep Learning — UTH: sentiment analysis bằng mô hình pre
+ - [Notebook Exercise 2](notebooks/02_finetuning_binary_classification.ipynb): dữ liệu, Trainer, metrics, threshold, biểu đồ và phân tích lỗi.
+ - [Notebook tích hợp](notebooks/lab03_huggingface_complete.ipynb): cả hai Exercise, phù hợp xem toàn bộ bài.
+ - [Báo cáo thực hành](walkthrough_lab_03.md): lý thuyết, phương pháp, kết quả và giới hạn có bằng chứng.
+-- [Đề bài](description_lab_03.md).
++- [Đề bài, thảo luận và quyết định](description_lab_03.md).
+ 
+ Các notebook đã lưu output của một lượt thực thi **`MODE="view"`** trên artifacts Kaggle. Có thể đọc trực tiếp trên GitHub. Khi chạy lại notebook, mặc định view đọc dữ liệu đã commit, không tải model/dataset, không huấn luyện và không cần GPU. Đổi `MODE="train"` ở cell setup để tạo thí nghiệm mới; phần fine-tuning yêu cầu GPU theo mặc định.
+ 
+@@ -29,16 +29,19 @@ labs/lab03/
+     utils/                  log, registry, manifest và plots
+     workflow.py             luồng CLI/notebook dùng chung
+     evidence.py             audit đọc-only, tính lại metrics từ dự đoán
++    analysis.py             xuất hình/bảng cho run lịch sử và run train mới
++    threshold_evidence.py   kiểm toán validation, evaluation và inference
++    threshold_analysis.py   so sánh hai policy, metric theo lớp và lỗi
+   scripts/                  train, eval, infer, audit và recovery
+   tests/                    tests chức năng và kiểm tra artifacts thật
+-  outputs/runs/             artifacts Kaggle nhẹ, giữ nguyên manifest gốc
++  outputs/runs/             artifacts nguồn, phân tích, notebook render và kiểm chứng
+   validation/               kết quả audit và thực thi notebook tại máy rà soát
+   description_lab_03.md     đề bài, thảo luận và quyết định
+   walkthrough_lab_03.md     báo cáo thực nghiệm để nộp
+   internal_changes.md       lịch sử kỹ thuật; không thuộc báo cáo nộp
+ ```
+ 
+-Đã hợp nhất các thư mục `config/` và `outputs/` được upload ở gốc repo vào `labs/lab03/`. Không có hai registry độc lập. Các byte artifacts gốc không bị chỉnh sửa; 24 file hiện có khớp manifest.
++Đã hợp nhất các thư mục `config/` và `outputs/` được upload ở gốc repo vào `labs/lab03/`. Không có hai registry độc lập. Các byte artifacts Kaggle không bị chỉnh sửa; audit xác minh 24 file của hai run gốc và 32 file của ba run bổ sung, tổng cộng 56 file nguồn.
+ 
+ ## 3. Cài đặt
+ 
+@@ -198,7 +201,7 @@ SHA256 weights được giữ trong manifest: `5a63c9c2a6391132c86b0e6c08277cc23
+ 
+ Mỗi run có config, snapshot, console log, provenance, status, SHA256 manifest, metrics, lịch sử, dự đoán và report. Năm hình: learning curves, confusion matrix chuẩn hóa kèm counts, binary metrics bar, train token-length KDE/cutoff và bảng mẫu đúng/sai.
+ 
+-`outputs/` mặc định bị ignore để tránh đẩy nhầm model; các artifacts nhẹ của hai run hiện hành đã được commit. Với run mới, chỉ stage phần nhẹ:
++`outputs/` mặc định bị ignore để tránh đẩy nhầm model; các artifacts nhẹ của năm run nguồn và các run phân tích/render đã được commit. Với run mới, chỉ stage phần nhẹ:
+ 
+ ```bash
+ git add -f -- labs/lab03/outputs/runs/<run_id> ':(glob,exclude)**/best_model/**' ':(glob,exclude)**/checkpoints/**'
+@@ -206,7 +209,7 @@ git add labs/lab03/config/workflow.json
+ git diff --cached --stat
+ ```
+ 
+-Giữ manifest gốc kể cả khi weights không đi cùng. Không chỉnh sửa artifacts lịch sử để làm số liệu đẹp hơn; kết quả rà soát bổ sung ghi ở `validation/`. Run registry cần đi cùng run directory khi chuyển máy.
++Giữ manifest gốc kể cả khi weights không đi cùng. Không chỉnh sửa artifacts lịch sử để làm số liệu đẹp hơn; kết quả rà soát và artifacts dẫn xuất ghi trong run riêng dưới `outputs/`, còn `validation/` giữ báo cáo hoặc đường dẫn tra cứu. Run registry cần đi cùng run directory khi chuyển máy.
+ 
+ ## 9. Notebook mở rộng, roadmap và artifact trực quan
+ 
+-- 
+2.52.0
+
